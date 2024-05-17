@@ -1,4 +1,4 @@
-package pl.lapko.vyosmanager.screens
+package pl.lapko.vyosmanager.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,8 +27,8 @@ import pl.lapko.vyosmanager.ui.theme.VyOSManagerTheme
 
 @Composable
 fun LoginScreen(navController: NavController) {
-    var ipAddress by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var ipAddress by remember { mutableStateOf("192.168.0.50") }
+    var password by remember { mutableStateOf("vyos") }
     var showErrorMessage by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center){
@@ -49,11 +49,20 @@ fun LoginScreen(navController: NavController) {
         Button(onClick = {
             VyOSConnection.setupVyOSConnection(ipAddress, password)
             VyOSConnection.verifyVyOSConnection(
-                onSuccess = { isConnected ->
-                    if(isConnected){
-                        navController.navigate("LoginScreen")
+                onSuccess = { connectionResponse ->
+                    if(connectionResponse != null){
+                        if(connectionResponse.success) {
+                            navController.navigate("MainScreen")
+                        } else {
+                            errorMessage = if(connectionResponse.error != null){
+                                connectionResponse.error!!
+                            } else {
+                                "Unknown error"
+                            }
+                            showErrorMessage = true
+                        }
                     } else {
-                        errorMessage = "Internal VyOS error"
+                        errorMessage = "Unknown error"
                         showErrorMessage = true
                     }
                 },

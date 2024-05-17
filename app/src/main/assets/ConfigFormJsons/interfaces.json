@@ -1,0 +1,24 @@
+{
+  "ethernet" : {
+    "eth0" : [
+      "address",
+      "duplex",
+      "speed"
+    ],
+    "eth1" : [
+      "address",
+      "duplex",
+      "speed"
+    ],
+    "eth2" : [
+      "address",
+      "duplex",
+      "speed"
+    ]
+  },
+  "loopback" : {
+    "lo" : [
+      "address"
+    ]
+  }
+}

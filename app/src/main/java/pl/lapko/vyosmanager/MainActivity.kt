@@ -7,13 +7,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import pl.lapko.vyosmanager.screens.LoginScreen
+import androidx.navigation.navArgument
+import pl.lapko.vyosmanager.ui.screens.ConfigScreen
+import pl.lapko.vyosmanager.ui.screens.LoginScreen
+import pl.lapko.vyosmanager.ui.screens.MainScreen
 import pl.lapko.vyosmanager.ui.theme.VyOSManagerTheme
 
 class MainActivity : ComponentActivity() {
@@ -30,6 +33,14 @@ class MainActivity : ComponentActivity() {
                 ) {
                     NavHost(navController = navController, startDestination = "LoginScreen"){
                         composable("LoginScreen") { LoginScreen(navController) }
+                        composable("MainScreen") { MainScreen(navController) }
+                        composable(
+                            "ConfigScreen/{param}",
+                            arguments = listOf(navArgument("param") { type = NavType.StringType} )
+                        ) {backStackEntry ->
+                            val param = backStackEntry.arguments?.getString("param")
+                            ConfigScreen(navController, param!!)
+                        }
                     }
                 }
             }
@@ -41,6 +52,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppPreview(){
     VyOSManagerTheme {
-        LoginScreen(rememberNavController())
+        MainScreen(rememberNavController())
     }
 }

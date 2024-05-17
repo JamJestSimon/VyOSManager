@@ -30,19 +30,23 @@ object VyOSConnection {
         requestQueue = Volley.newRequestQueue(context)
     }
 
+    fun getVyOSAddress(): String {
+        return VyOSAddress
+    }
+
     fun setupVyOSConnection(address: String, password: String){
         VyOSAddress = address
         VyOSPassword = password
     }
 
     fun verifyVyOSConnection(
-        onSuccess: (Boolean) -> Unit,
+        onSuccess: (VyOSResults?) -> Unit,
         onError: (Exception) -> Unit
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try{
                 val result = vyOSRequest("retrieve","showConfig","").await()
-                onSuccess(result?.success ?: false)
+                onSuccess(result)
             } catch(e: Exception) {
                 Log.println(Log.ERROR, "VOLLEY_DEBUG", e.message.toString())
                 onError(e)
@@ -66,36 +70,73 @@ object VyOSConnection {
         }
     }
 
+    fun setVyOSData(
+        path: String,
+        onSuccess: (VyOSResults?) -> Unit,
+        onError: (Exception) -> Unit
+    ){
+        CoroutineScope(Dispatchers.IO).launch {
+            try{
+                val result = vyOSRequest("configure","set",path).await()
+                onSuccess(result)
+            } catch (e: Exception){
+                Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
+                onError(e)
+            }
+        }
+    }
+
+    fun deleteVyOSData(
+        path: String,
+        onSuccess: (VyOSResults?) -> Unit,
+        onError: (Exception) -> Unit
+    ){
+        CoroutineScope(Dispatchers.IO).launch {
+            try{
+                val result = vyOSRequest("configure","delete",path).await()
+                onSuccess(result)
+            } catch (e: Exception){
+                Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
+                onError(e)
+            }
+        }
+    }
+
+    fun saveVyOSData(
+        onSuccess: (VyOSResults?) -> Unit,
+        onError: (Exception) -> Unit
+    ){
+        CoroutineScope(Dispatchers.IO).launch {
+            try{
+                val result = vyOSRequest("config-file", "save", "").await()
+                onSuccess(result)
+            } catch (e: Exception){
+                Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
+                onError(e)
+            }
+        }
+    }
+
     /*
-    * list of endpoints with operations
+    * list of supported endpoints with operations
     *
     * retrieve
     *   showConfig
-    *   returnValues
-    *   exists
-    *
-    * reset
-    *   reset
     *
     * reboot
     *   reboot
     *
-    * show
-    *   show
-    *
     * configure
     *   set
     *   delete
-    *   comment
     *
     * config-file
     *   save
-    *   load
     *
     * */
     private suspend fun vyOSRequest(endpoint: String, op: String, path: String): Deferred<VyOSResults?> {
         return CoroutineScope(Dispatchers.IO).async {
-            Log.println(Log.INFO, "INFO", "Starting configuration retrieval")
+            Log.println(Log.INFO, "INFO", "Starting VyOS Request")
             val url = "https://$VyOSAddress/$endpoint"
             val response = suspendCoroutine<String> { continuation ->
                 val stringRequest = object : StringRequest(
@@ -119,7 +160,12 @@ object VyOSConnection {
                     }) {
                     override fun getParams(): Map<String, String> {
                         val params: MutableMap<String, String> = HashMap()
-                        params["data"] = "{\"op\": \"$op\", \"path\": [$path]}"
+                        if(op == "save") {
+                            params["data"] = "{\"op\": \"$op\"}"
+                        } else {
+                            params["data"] = "{\"op\": \"$op\", \"path\": [$path]}"
+                            Log.println(Log.INFO, "VOLLEY_DEBUG", "{\"op\": \"$op\", \"path\": [$path]}")
+                        }
                         params["key"] = VyOSPassword
                         return params
                     }
