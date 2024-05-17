@@ -17,8 +17,8 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlin.coroutines.resumeWithException
-import kotlin.reflect.typeOf
 
 object VyOSConnection {
     private var VyOSAddress = ""
@@ -72,13 +72,44 @@ object VyOSConnection {
 
     fun setVyOSData(
         path: String,
-        onSuccess: (VyOSResults?) -> Unit,
+        onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ){
         CoroutineScope(Dispatchers.IO).launch {
             try{
                 val result = vyOSRequest("configure","set",path).await()
-                onSuccess(result)
+                if(result == null){
+                    onError(Exception("Unknown internal VyOS error"))
+                } else if(!result.success){
+                    onError(Exception("Internal VyOS error: ${result.error}"))
+                }
+                onSuccess()
+            } catch (e: Exception){
+                Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
+                onError(e)
+            }
+        }
+    }
+
+    fun setMultipleVyOSData(
+        paths: List<String>,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ){
+        CoroutineScope(Dispatchers.IO).launch {
+            try{
+                val deferredTasks = paths.map { path ->
+                    vyOSRequest("configure", "set", path)
+                }
+                val results = deferredTasks.awaitAll()
+                results.forEach {
+                    if(it == null){
+                        onError(Exception("Unknown internal VyOS error"))
+                    } else if(!it.success){
+                        onError(Exception("Internal VyOS error: ${it.error}"))
+                    }
+                }
+                onSuccess()
             } catch (e: Exception){
                 Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
                 onError(e)
@@ -88,13 +119,18 @@ object VyOSConnection {
 
     fun deleteVyOSData(
         path: String,
-        onSuccess: (VyOSResults?) -> Unit,
+        onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ){
         CoroutineScope(Dispatchers.IO).launch {
             try{
                 val result = vyOSRequest("configure","delete",path).await()
-                onSuccess(result)
+                if(result == null){
+                    onError(Exception("Unknown internal VyOS error"))
+                } else if(!result.success){
+                    onError(Exception("Internal VyOS error: ${result.error}"))
+                }
+                onSuccess()
             } catch (e: Exception){
                 Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
                 onError(e)
@@ -103,13 +139,18 @@ object VyOSConnection {
     }
 
     fun saveVyOSData(
-        onSuccess: (VyOSResults?) -> Unit,
+        onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ){
         CoroutineScope(Dispatchers.IO).launch {
             try{
                 val result = vyOSRequest("config-file", "save", "").await()
-                onSuccess(result)
+                if(result == null){
+                    onError(Exception("Unknown internal VyOS error"))
+                } else if(!result.success){
+                    onError(Exception("Internal VyOS error: ${result.error}"))
+                }
+                onSuccess()
             } catch (e: Exception){
                 Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
                 onError(e)

@@ -52,7 +52,7 @@ fun LoginScreen(navController: NavController) {
                 onSuccess = { connectionResponse ->
                     if(connectionResponse != null){
                         if(connectionResponse.success) {
-                            navController.navigate("MainScreen")
+                            navController.navigate("MainScreen/false")
                         } else {
                             errorMessage = if(connectionResponse.error != null){
                                 connectionResponse.error!!

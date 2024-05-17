@@ -33,8 +33,13 @@ import pl.lapko.vyosmanager.VyOSConnection
 import pl.lapko.vyosmanager.VyOSResults
 
 @Composable
-fun DisplayConfig(results : VyOSResults, rootPath: String) {
-    val createdElements = createListElements(results.data!!, rootPath)
+fun DisplayConfig(results : VyOSResults, rootPath: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+    val createdElements = createListElements(results.data!!, rootPath,
+        onSuccess = {
+            onSuccess()
+        }, onError = {
+            onError(it)
+        })
     val listItems = remember { createdElements }
     LazyColumn(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         items(items = listItems) { listItem ->
@@ -44,11 +49,11 @@ fun DisplayConfig(results : VyOSResults, rootPath: String) {
 }
 
 @Composable
-fun createListElements(root: JsonNode, rootPath: String): List<@Composable () -> Unit> {
+fun createListElements(root: JsonNode, rootPath: String, onSuccess: () -> Unit, onError: (Exception) -> Unit): List<@Composable () -> Unit> {
     val composables = mutableListOf<@Composable () -> Unit>()
 
     @Composable
-    fun createListItems(node: JsonNode, parentNode: JsonNode, indentation : Int, indentationChange : Int, currentPath: String) {
+    fun createListItems(node: JsonNode, parentNode: JsonNode, indentation : Int, indentationChange : Int, currentPath: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         if (node.isObject) {
             val fieldNames = node.fieldNames()
             while (fieldNames.hasNext()) {
@@ -57,7 +62,12 @@ fun createListElements(root: JsonNode, rootPath: String): List<@Composable () ->
                 var fieldValueText = ""
                 if(!fieldValue.isObject && !fieldValue.isArray) fieldValueText = fieldValue.textValue()
                 composables.add {
-                    ListItemTemplate(node = node, fieldName = fieldName, value = fieldValueText, indentation = indentation, currentPath = currentPath)
+                    ListItemTemplate(node = node, fieldName = fieldName, value = fieldValueText, indentation = indentation, currentPath = currentPath,
+                        onSuccess = {
+                            onSuccess()
+                        }, onError = {
+                            onError(it)
+                        })
                 }
                 if(fieldValue.isObject || fieldValue.isArray){
                     createListItems(
@@ -65,8 +75,12 @@ fun createListElements(root: JsonNode, rootPath: String): List<@Composable () ->
                         parentNode = node,
                         indentation = indentation + indentationChange,
                         indentationChange = indentationChange,
-                        currentPath = "$currentPath\"$fieldName\", "
-                    )
+                        currentPath = "$currentPath\"$fieldName\", ",
+                        onSuccess = {
+                            onSuccess()
+                        }, onError = {
+                            onError(it)
+                        })
                 }
             }
         } else if (node.isArray) {
@@ -74,17 +88,27 @@ fun createListElements(root: JsonNode, rootPath: String): List<@Composable () ->
                 val fieldName = parentNode.fieldNames().next()
                 val fieldValue = item.textValue()
                 composables.add {
-                    ListItemTemplate(node = node, fieldName = fieldName, value = fieldValue, indentation = indentation, currentPath = currentPath)
+                    ListItemTemplate(node = node, fieldName = fieldName, value = fieldValue, indentation = indentation, currentPath = currentPath,
+                        onSuccess = {
+                            onSuccess()
+                        }, onError = {
+                            onError(it)
+                        })
                 }
             }
         }
     }
-    createListItems(root, root, 0, 20, rootPath)
+    createListItems(root, root, 0, 20, rootPath,
+        onSuccess = {
+            onSuccess()
+        }, onError = {
+            onError(it)
+        })
     return composables
 }
 
 @Composable
-fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentation: Int, currentPath: String){
+fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentation: Int, currentPath: String, onSuccess: () -> Unit, onError: (Exception) -> Unit){
     var isEditable = false
     var fieldValue = value
     var isInEditMode by remember { mutableStateOf(false) }
@@ -124,7 +148,12 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                             //Confirm button
                             Button(
                                 onClick = {
-                                    editNodeKey(node, path, fieldValue, editModeValue)
+                                    editNodeKey(node, path, fieldValue, editModeValue,
+                                        onSuccess = {
+                                            onSuccess()
+                                        }, onError = {
+                                            onError(it)
+                                        })
                                     isInEditMode = false
                                 },
                                 shape = CircleShape,
@@ -178,10 +207,10 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                                 onClick = {
                                     VyOSConnection.deleteVyOSData("$path\"$fieldValue\"",
                                         onSuccess = {
-                                            /*TODO*/
+                                            onSuccess()
                                         },
                                         onError = {
-                                            /*TODO*/
+                                            onError(it)
                                         }
                                     )
                                 },
@@ -208,7 +237,8 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
     )
 }
 
-fun editNodeKey(node: JsonNode, rootPath: String, oldKey: String, newKey: String) {
+fun editNodeKey(node: JsonNode, rootPath: String, oldKey: String, newKey: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+    val pathsToEdit = mutableListOf<String>()
 
     fun addNewNode(node: JsonNode, rootPath: String) {
         if (node.isObject) {
@@ -220,25 +250,13 @@ fun editNodeKey(node: JsonNode, rootPath: String, oldKey: String, newKey: String
                     addNewNode(fieldValue, "$rootPath\"$fieldName\", ")
                 } else {
                     val value = fieldValue.textValue()
-                    VyOSConnection.setVyOSData("$rootPath\"$fieldName\", \"$value\"",
-                        onSuccess = {
-                            /*TODO*/
-                        },
-                        onError = {
-                            /*TODO*/
-                        })
+                    pathsToEdit.add("$rootPath\"$fieldName\", \"$value\"")
                 }
             }
         } else if (node.isArray) {
             node.forEach { item ->
                 val fieldValue = item.textValue()
-                VyOSConnection.setVyOSData("$rootPath\"$fieldValue\"",
-                    onSuccess = {
-                        /*TODO*/
-                    },
-                    onError = {
-                        /*TODO*/
-                    })
+                pathsToEdit.add("$rootPath\"$fieldValue\"")
             }
         }
     }
@@ -250,49 +268,27 @@ fun editNodeKey(node: JsonNode, rootPath: String, oldKey: String, newKey: String
             val fieldValue = node.get(fieldName)
             if (fieldValue.isObject || fieldValue.isArray) {
                 addNewNode(fieldValue, "$rootPath\"$newKey\", ")
-                //To do in callback of addNewNode
-                VyOSConnection.deleteVyOSData("$rootPath\"$oldKey\"",
-                    onSuccess = {
-                        /*TODO*/
-                    },
-                    onError = {
-                        /*TODO*/
-                    })
             } else {
-                VyOSConnection.setVyOSData("$rootPath\"$newKey\"",
-                    onSuccess = {
-                        /*TODO*/
-                    },
-                    onError = {
-                        /*TODO*/
-                    })
-                VyOSConnection.deleteVyOSData("$rootPath\"$oldKey\"",
-                    onSuccess = {
-                        /*TODO*/
-                    },
-                    onError = {
-                        /*TODO*/
-                    })
+                pathsToEdit.add("$rootPath\"$newKey\"")
             }
         }
     } else if (node.isArray) {
         node.forEach { item ->
             val fieldValue = item.textValue()
-            VyOSConnection.setVyOSData("$rootPath\"$newKey\", \"$fieldValue\"",
-                onSuccess = {
-                    /*TODO*/
-                },
-                onError = {
-                    /*TODO*/
-                })
-            VyOSConnection.deleteVyOSData("$rootPath\"$oldKey\"",
-                onSuccess = {
-                    /*TODO*/
-                },
-                onError = {
-                    /*TODO*/
-                })
+            pathsToEdit.add("$rootPath\"$newKey\", \"$fieldValue\"")
         }
     }
+
+    VyOSConnection.setMultipleVyOSData(pathsToEdit,
+        onSuccess = {
+            VyOSConnection.deleteVyOSData("$rootPath\"$oldKey\"",
+                onSuccess = {
+                    onSuccess()
+                }, onError = {
+                    onError(it)
+                })
+        }, onError = {
+            onError(it)
+        })
 }
 
