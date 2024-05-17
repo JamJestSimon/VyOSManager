@@ -1,0 +1,14 @@
+{
+  "ospf" : {
+    "neighbor" : {
+      "<x.x.x.x>" : [
+        "priority",
+        "poll-interval"
+      ]
+    }
+  },
+  "rip" : {
+    "network" : {},
+    "neighbor" : {}
+  }
+}
