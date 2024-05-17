@@ -8,14 +8,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -146,7 +145,7 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                             Spacer(modifier = Modifier.padding(20.dp))
 
                             //Confirm button
-                            Button(
+                            IconButton(
                                 onClick = {
                                     editNodeKey(node, path, fieldValue, editModeValue,
                                         onSuccess = {
@@ -156,7 +155,6 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                                         })
                                     isInEditMode = false
                                 },
-                                shape = CircleShape,
                                 modifier = Modifier.background(color = Color.Transparent)
                             ) {
                                 Icon(
@@ -168,11 +166,10 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                             }
 
                             //Cancel button
-                            Button(
+                            IconButton(
                                 onClick = {
                                     isInEditMode = false
                                 },
-                                shape = CircleShape,
                                 modifier = Modifier.background(color = Color.Transparent)
                             ) {
                                 Icon(
@@ -189,9 +186,8 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                             Spacer(modifier = Modifier.padding(20.dp))
 
                             //Edit button
-                            Button(
+                            IconButton(
                                 onClick = { isInEditMode = true },
-                                shape = CircleShape,
                                 modifier = Modifier.background(color = Color.Transparent)
                             ) {
                                 Icon(
@@ -203,7 +199,7 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                             }
 
                             //Delete button
-                            Button(
+                            IconButton(
                                 onClick = {
                                     VyOSConnection.deleteVyOSData("$path\"$fieldValue\"",
                                         onSuccess = {
@@ -214,7 +210,6 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                                         }
                                     )
                                 },
-                                shape = CircleShape,
                                 modifier = Modifier.background(color = Color.Transparent)
                             ) {
                                 Icon(
@@ -272,11 +267,8 @@ fun editNodeKey(node: JsonNode, rootPath: String, oldKey: String, newKey: String
                 pathsToEdit.add("$rootPath\"$newKey\"")
             }
         }
-    } else if (node.isArray) {
-        node.forEach { item ->
-            val fieldValue = item.textValue()
-            pathsToEdit.add("$rootPath\"$newKey\", \"$fieldValue\"")
-        }
+    } else {
+        pathsToEdit.add("$rootPath\"$newKey\"")
     }
 
     VyOSConnection.setMultipleVyOSData(pathsToEdit,
