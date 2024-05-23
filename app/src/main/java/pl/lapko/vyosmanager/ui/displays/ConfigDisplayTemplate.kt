@@ -29,12 +29,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.fasterxml.jackson.databind.JsonNode
 import pl.lapko.vyosmanager.VyOSConnection
-import pl.lapko.vyosmanager.VyOSResults
+import pl.lapko.vyosmanager.data.VyOSResults
 
 @Composable
-fun DisplayConfig(results : VyOSResults, rootPath: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+fun DisplayConfig(results : VyOSResults, rootPath: String, onRequest: () -> Unit, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
     val createdElements = createListElements(results.data!!, rootPath,
-        onSuccess = {
+        onRequest = {
+            onRequest()
+        }, onSuccess = {
             onSuccess()
         }, onError = {
             onError(it)
@@ -48,11 +50,11 @@ fun DisplayConfig(results : VyOSResults, rootPath: String, onSuccess: () -> Unit
 }
 
 @Composable
-fun createListElements(root: JsonNode, rootPath: String, onSuccess: () -> Unit, onError: (Exception) -> Unit): List<@Composable () -> Unit> {
+fun createListElements(root: JsonNode, rootPath: String, onRequest: () -> Unit, onSuccess: () -> Unit, onError: (Exception) -> Unit): List<@Composable () -> Unit> {
     val composables = mutableListOf<@Composable () -> Unit>()
 
     @Composable
-    fun createListItems(node: JsonNode, parentNode: JsonNode, indentation : Int, indentationChange : Int, currentPath: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+    fun createListItems(node: JsonNode, parentNode: JsonNode, indentation : Int, indentationChange : Int, currentPath: String, onRequest: () -> Unit, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         if (node.isObject) {
             val fieldNames = node.fieldNames()
             while (fieldNames.hasNext()) {
@@ -62,7 +64,9 @@ fun createListElements(root: JsonNode, rootPath: String, onSuccess: () -> Unit, 
                 if(!fieldValue.isObject && !fieldValue.isArray) fieldValueText = fieldValue.textValue()
                 composables.add {
                     ListItemTemplate(node = node, fieldName = fieldName, value = fieldValueText, indentation = indentation, currentPath = currentPath,
-                        onSuccess = {
+                        onRequest = {
+                            onRequest()
+                        }, onSuccess = {
                             onSuccess()
                         }, onError = {
                             onError(it)
@@ -75,7 +79,9 @@ fun createListElements(root: JsonNode, rootPath: String, onSuccess: () -> Unit, 
                         indentation = indentation + indentationChange,
                         indentationChange = indentationChange,
                         currentPath = "$currentPath\"$fieldName\", ",
-                        onSuccess = {
+                        onRequest = {
+                            onRequest()
+                        }, onSuccess = {
                             onSuccess()
                         }, onError = {
                             onError(it)
@@ -88,6 +94,9 @@ fun createListElements(root: JsonNode, rootPath: String, onSuccess: () -> Unit, 
                 val fieldValue = item.textValue()
                 composables.add {
                     ListItemTemplate(node = node, fieldName = fieldName, value = fieldValue, indentation = indentation, currentPath = currentPath,
+                        onRequest = {
+                            onRequest()
+                        },
                         onSuccess = {
                             onSuccess()
                         }, onError = {
@@ -98,7 +107,9 @@ fun createListElements(root: JsonNode, rootPath: String, onSuccess: () -> Unit, 
         }
     }
     createListItems(root, root, 0, 20, rootPath,
-        onSuccess = {
+        onRequest = {
+            onRequest()
+        }, onSuccess = {
             onSuccess()
         }, onError = {
             onError(it)
@@ -107,7 +118,7 @@ fun createListElements(root: JsonNode, rootPath: String, onSuccess: () -> Unit, 
 }
 
 @Composable
-fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentation: Int, currentPath: String, onSuccess: () -> Unit, onError: (Exception) -> Unit){
+fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentation: Int, currentPath: String, onRequest: () -> Unit, onSuccess: () -> Unit, onError: (Exception) -> Unit){
     var isEditable = false
     var fieldValue = value
     var isInEditMode by remember { mutableStateOf(false) }
@@ -148,7 +159,9 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                             IconButton(
                                 onClick = {
                                     editNodeKey(node, path, fieldValue, editModeValue,
-                                        onSuccess = {
+                                        onRequest = {
+                                            onRequest()
+                                        }, onSuccess = {
                                             onSuccess()
                                         }, onError = {
                                             onError(it)
@@ -201,6 +214,7 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
                             //Delete button
                             IconButton(
                                 onClick = {
+                                    onRequest()
                                     VyOSConnection.deleteVyOSData("$path\"$fieldValue\"",
                                         onSuccess = {
                                             onSuccess()
@@ -232,7 +246,7 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
     )
 }
 
-fun editNodeKey(node: JsonNode, rootPath: String, oldKey: String, newKey: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+fun editNodeKey(node: JsonNode, rootPath: String, oldKey: String, newKey: String, onRequest: () -> Unit, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
     val pathsToEdit = mutableListOf<String>()
 
     fun addNewNode(node: JsonNode, rootPath: String) {
@@ -270,7 +284,7 @@ fun editNodeKey(node: JsonNode, rootPath: String, oldKey: String, newKey: String
     } else {
         pathsToEdit.add("$rootPath\"$newKey\"")
     }
-
+    onRequest()
     VyOSConnection.setMultipleVyOSData(pathsToEdit,
         onSuccess = {
             VyOSConnection.deleteVyOSData("$rootPath\"$oldKey\"",

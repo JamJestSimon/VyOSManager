@@ -1,4 +1,4 @@
-package pl.lapko.vyosmanager
+package pl.lapko.vyosmanager.data
 
 import com.fasterxml.jackson.databind.JsonNode
 

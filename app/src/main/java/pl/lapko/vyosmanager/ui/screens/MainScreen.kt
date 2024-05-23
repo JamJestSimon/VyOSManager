@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
@@ -45,36 +46,43 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import pl.lapko.vyosmanager.VyOSConnection
-import pl.lapko.vyosmanager.VyOSResults
+import pl.lapko.vyosmanager.data.VyOSResults
+import pl.lapko.vyosmanager.ui.displays.DashboardDisplay
 import pl.lapko.vyosmanager.ui.displays.DisplayConfig
+import pl.lapko.vyosmanager.ui.displays.RouteTableDisplay
 import pl.lapko.vyosmanager.ui.theme.VyOSManagerTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean) {
+fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean, category: String) {
     var currentVyOSResults : VyOSResults? by remember { mutableStateOf(null) }
     var showConfig by remember { mutableStateOf(false) }
-    var configPath by remember { mutableStateOf("interfaces") }
+    var configPath by remember { mutableStateOf(category.lowercase()) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var selectedNavigationItem by remember { mutableStateOf("Interfaces") }
-    val navigationItems = listOf("Interfaces", "Protocols", "Firewall", "NAT")
+    var selectedNavigationItem by remember { mutableStateOf(category) }
+    val navigationItems = listOf("Dashboard", "Interfaces", "Protocols", "Firewall", "NAT")
     val snackbarHostState = remember { SnackbarHostState() }
     var showErrorMessage by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var unsavedChanges by remember { mutableStateOf(anyUnsavedChanges) }
     LaunchedEffect(Unit) {
-        VyOSConnection.getVyOSData(
-            "\"$configPath\"",
-            onSuccess = { vyOSResults ->
-                currentVyOSResults = vyOSResults
-                showConfig = true
-            },
-            onError = {
-                showErrorMessage = true
-                errorMessage = it.message.toString()
-            }
-        )
+        scope.launch {
+            snackbarHostState.showSnackbar("Fetching data")
+        }
+        if(selectedNavigationItem != "Dashboard") {
+            VyOSConnection.getVyOSData(
+                "\"$configPath\"",
+                onSuccess = { vyOSResults ->
+                    currentVyOSResults = vyOSResults
+                    showConfig = true
+                },
+                onError = {
+                    showErrorMessage = true
+                    errorMessage = it.message.toString()
+                }
+            )
+        }
     }
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -93,19 +101,24 @@ fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean) {
                                 }
                             }
                             showConfig = false
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Fetching data")
+                            }
                             selectedNavigationItem = navigationItem
                             configPath = navigationItem.lowercase()
-                            VyOSConnection.getVyOSData(
-                                "\"$configPath\"",
-                                onSuccess = { vyOSResults ->
-                                    currentVyOSResults = vyOSResults
-                                    showConfig = true
-                                },
-                                onError = {
-                                    showErrorMessage = true
-                                    errorMessage = it.message.toString()
-                                }
-                            )
+                            if(selectedNavigationItem != "Dashboard") {
+                                VyOSConnection.getVyOSData(
+                                    "\"$configPath\"",
+                                    onSuccess = { vyOSResults ->
+                                        currentVyOSResults = vyOSResults
+                                        showConfig = true
+                                    },
+                                    onError = {
+                                        showErrorMessage = true
+                                        errorMessage = it.message.toString()
+                                    }
+                                )
+                            }
                         }
                     )
                 }
@@ -140,7 +153,17 @@ fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean) {
                             )
                         }
                     },
-                    scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+                    scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),
+                    actions = {
+                        IconButton(onClick = {
+                            navController.navigate("LoginScreen")
+                        }){
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = "Back to login screen"
+                            )
+                        }
+                    }
                 )
             },
             floatingActionButton = {
@@ -157,11 +180,7 @@ fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean) {
                         .fillMaxSize()
                         .padding(it)
                 ) {
-                    Text(
-                        text = "$configPath configuration".uppercase(),
-                        fontWeight = FontWeight.Bold
-                    )
-                    if(unsavedChanges) {
+                    if (unsavedChanges) {
                         Spacer(modifier = Modifier.height(10.dp))
                         Button(onClick = {
                             VyOSConnection.saveVyOSData(
@@ -179,35 +198,83 @@ fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean) {
                             Text("Save changes")
                         }
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
-                    if (showConfig) {
-                        DisplayConfig(currentVyOSResults!!, "\"$configPath\", ",
-                            onSuccess = {
-                                unsavedChanges = true
+                    if(selectedNavigationItem == "Dashboard"){
+                        DashboardDisplay(
+                            onRequest = {
                                 scope.launch {
-                                    val result = snackbarHostState.showSnackbar("Data has been changed", "Refresh")
-                                    when (result){
-                                        SnackbarResult.ActionPerformed -> {
-                                            showConfig = false
-                                            VyOSConnection.getVyOSData(
-                                                "\"$configPath\"",
-                                                onSuccess = { vyOSResults ->
-                                                    currentVyOSResults = vyOSResults
-                                                    showConfig = true
-                                                },
-                                                onError = {
-                                                    showErrorMessage = true
-                                                    errorMessage = it.message.toString()
-                                                }
-                                            )
-                                        }
-                                        SnackbarResult.Dismissed -> {}
-                                    }
+                                    snackbarHostState.showSnackbar("Request sent to server")
+                                }
+                            },
+                            onSuccess = {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Data has been changed")
+                                    unsavedChanges = true
                                 }
                             }, onError = {
                                 showErrorMessage = true
                                 errorMessage = it.message.toString()
-                            })
+                            }
+                        )
+                    } else {
+                        if(selectedNavigationItem == "Protocols"){
+                            RouteTableDisplay(
+                                onRequest = {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Fetching data")
+                                    }
+                                }, onError = {
+                                    showErrorMessage = true
+                                    errorMessage = it.message.toString()
+                                }
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "$selectedNavigationItem configuration".uppercase(),
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        if (showConfig) {
+                            DisplayConfig(currentVyOSResults!!, "\"$configPath\", ",
+                                onRequest = {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Request sent to server")
+                                    }
+                                },
+                                onSuccess = {
+                                    unsavedChanges = true
+                                    scope.launch {
+                                        val result = snackbarHostState.showSnackbar(
+                                            "Data has been changed",
+                                            "Refresh"
+                                        )
+                                        when (result) {
+                                            SnackbarResult.ActionPerformed -> {
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar("Fetching data")
+                                                }
+                                                showConfig = false
+                                                VyOSConnection.getVyOSData(
+                                                    "\"$configPath\"",
+                                                    onSuccess = { vyOSResults ->
+                                                        currentVyOSResults = vyOSResults
+                                                        showConfig = true
+                                                    },
+                                                    onError = {
+                                                        showErrorMessage = true
+                                                        errorMessage = it.message.toString()
+                                                    }
+                                                )
+                                            }
+                                            SnackbarResult.Dismissed -> {}
+                                        }
+                                    }
+                                }, onError = {
+                                    showErrorMessage = true
+                                    errorMessage = it.message.toString()
+                                }
+                            )
+                        }
                     }
                 }
                 if(showErrorMessage){
@@ -231,6 +298,6 @@ fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean) {
 @Composable
 fun MainScreenPreview(){
     VyOSManagerTheme {
-        MainScreen(rememberNavController(), false)
+        MainScreen(rememberNavController(), false, "")
     }
 }

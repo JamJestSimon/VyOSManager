@@ -18,6 +18,7 @@ import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import pl.lapko.vyosmanager.data.VyOSResults
 import kotlin.coroutines.resumeWithException
 
 object VyOSConnection {
@@ -40,13 +41,19 @@ object VyOSConnection {
     }
 
     fun verifyVyOSConnection(
-        onSuccess: (VyOSResults?) -> Unit,
+        onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try{
                 val result = vyOSRequest("retrieve","showConfig","").await()
-                onSuccess(result)
+                if(result == null){
+                    onError(Exception("Unknown internal VyOS error"))
+                } else if(!result.success){
+                    onError(Exception("Internal VyOS error: ${result.error}"))
+                } else {
+                    onSuccess()
+                }
             } catch(e: Exception) {
                 Log.println(Log.ERROR, "VOLLEY_DEBUG", e.message.toString())
                 onError(e)
@@ -56,13 +63,19 @@ object VyOSConnection {
 
     fun getVyOSData(
         path: String,
-        onSuccess: (VyOSResults?) -> Unit,
+        onSuccess: (VyOSResults) -> Unit,
         onError: (Exception) -> Unit
     ){
         CoroutineScope(Dispatchers.IO).launch {
             try{
                 val result = vyOSRequest("retrieve","showConfig",path).await()
-                onSuccess(result)
+                if(result == null){
+                    onError(Exception("Unknown internal VyOS error"))
+                } else if(!result.success){
+                    onError(Exception("Internal VyOS error: ${result.error}"))
+                } else {
+                    onSuccess(result)
+                }
             } catch (e: Exception){
                 Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
                 onError(e)
@@ -82,8 +95,9 @@ object VyOSConnection {
                     onError(Exception("Unknown internal VyOS error"))
                 } else if(!result.success){
                     onError(Exception("Internal VyOS error: ${result.error}"))
+                } else {
+                    onSuccess()
                 }
-                onSuccess()
             } catch (e: Exception){
                 Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
                 onError(e)
@@ -129,8 +143,31 @@ object VyOSConnection {
                     onError(Exception("Unknown internal VyOS error"))
                 } else if(!result.success){
                     onError(Exception("Internal VyOS error: ${result.error}"))
+                } else {
+                    onSuccess()
                 }
-                onSuccess()
+            } catch (e: Exception){
+                Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
+                onError(e)
+            }
+        }
+    }
+
+    fun showVyOSData(
+        path: String,
+        onSuccess: (VyOSResults) -> Unit,
+        onError: (Exception) -> Unit
+    ){
+        CoroutineScope(Dispatchers.IO).launch {
+            try{
+                val result = vyOSRequest("show","show",path).await()
+                if(result == null){
+                    onError(Exception("Unknown internal VyOS error"))
+                } else if(!result.success){
+                    onError(Exception("Internal VyOS error: ${result.error}"))
+                } else {
+                    onSuccess(result)
+                }
             } catch (e: Exception){
                 Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
                 onError(e)
@@ -149,8 +186,9 @@ object VyOSConnection {
                     onError(Exception("Unknown internal VyOS error"))
                 } else if(!result.success){
                     onError(Exception("Internal VyOS error: ${result.error}"))
+                } else {
+                    onSuccess()
                 }
-                onSuccess()
             } catch (e: Exception){
                 Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
                 onError(e)

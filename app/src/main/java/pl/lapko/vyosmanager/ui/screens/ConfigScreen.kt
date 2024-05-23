@@ -69,6 +69,7 @@ fun ConfigScreen(navController: NavController, currentConfig: String){
     var addedNewData by remember { mutableStateOf(false) }
     var showErrorMessage by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
+    val returnCategory = remember { currentConfig.substring(0, 1).uppercase() + currentConfig.substring(1) }
     LaunchedEffect(Unit) {
         formJson.value = loadJson(currentConfig, context)
     }
@@ -82,7 +83,7 @@ fun ConfigScreen(navController: NavController, currentConfig: String){
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            navController.navigate("MainScreen/$addedNewData")
+                            navController.navigate("MainScreen/$addedNewData/$returnCategory")
                         }
                     ) {
                         Icon(
@@ -161,7 +162,7 @@ fun CreateConfigElements(node: JsonNode, rootPath: String, selectReload: Boolean
             options.add(field.textValue())
         }
     }
-    if (options.size == 1 && options[0].matches(Regex("^<.*>\$"))) {
+    if (options.size == 1 && options[0].matches(Regex("^<.*>$"))) {
         var input by remember { mutableStateOf("") }
         var showConfirmButton by remember { mutableStateOf(true) }
         var createNextOption by remember { mutableStateOf(false) }
