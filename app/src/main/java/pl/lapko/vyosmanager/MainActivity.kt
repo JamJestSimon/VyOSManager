@@ -34,11 +34,15 @@ class MainActivity : ComponentActivity() {
                     NavHost(navController = navController, startDestination = "LoginScreen"){
                         composable("LoginScreen") { LoginScreen(navController) }
                         composable(
-                            "MainScreen/{param}",
-                            arguments = listOf(navArgument("param") { type = NavType.BoolType } )
+                            "MainScreen/{param1}/{param2}",
+                            arguments = listOf(
+                                navArgument("param1") { type = NavType.BoolType },
+                                navArgument("param2") { type = NavType.StringType }
+                            )
                         ) {backStackEntry ->
-                            val param = backStackEntry.arguments?.getBoolean("param")
-                            MainScreen(navController, param!!)
+                            val param1 = backStackEntry.arguments?.getBoolean("param1")
+                            val param2 = backStackEntry.arguments?.getString("param2")
+                            MainScreen(navController, param1!!, param2!!)
                         }
                         composable(
                             "ConfigScreen/{param}",
@@ -58,6 +62,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppPreview(){
     VyOSManagerTheme {
-        MainScreen(rememberNavController(), false)
+        MainScreen(rememberNavController(), false, "")
     }
 }
