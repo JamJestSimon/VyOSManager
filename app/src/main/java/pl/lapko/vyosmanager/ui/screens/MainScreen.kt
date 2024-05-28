@@ -167,10 +167,12 @@ fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean, categor
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(
-                    onClick = { navController.navigate("ConfigScreen/$configPath") }
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
+                if(selectedNavigationItem != "Dashboard") {
+                    FloatingActionButton(
+                        onClick = { navController.navigate("ConfigScreen/$configPath") }
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
+                    }
                 }
             }, content = {
                 Column(

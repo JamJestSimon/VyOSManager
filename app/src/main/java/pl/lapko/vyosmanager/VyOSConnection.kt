@@ -202,9 +202,6 @@ object VyOSConnection {
     * retrieve
     *   showConfig
     *
-    * reboot
-    *   reboot
-    *
     * configure
     *   set
     *   delete
