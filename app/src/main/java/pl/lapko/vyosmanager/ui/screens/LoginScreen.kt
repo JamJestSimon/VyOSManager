@@ -146,7 +146,6 @@ fun LoginScreen(navController: NavController) {
                                 password = entryPassword.password
                             }) {
                                 Text("Address: $entryAddress")
-                                Text("Password: ${entryPassword.password}")
                             }
                             IconButton(
                                 onClick = {
