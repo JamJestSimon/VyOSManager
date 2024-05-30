@@ -1,0 +1,33 @@
+{
+  "ipv4": {
+    "name" : {
+      "<text>" : {
+        "default-action" : [
+          "drop",
+          "jump",
+          "reject",
+          "return",
+          "accept",
+          "continue"
+        ],
+        "rule" : {
+          "<1-999999>" : {
+            "destination" : [
+              "address",
+              "port"
+            ],
+            "protocol" : {},
+            "action" : [
+              "drop",
+              "jump",
+              "reject",
+              "return",
+              "accept",
+              "continue"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

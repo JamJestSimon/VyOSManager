@@ -139,9 +139,21 @@ fun ConfigScreen(navController: NavController, currentConfig: String){
     }
 }
 
+/**
+ * @param node currently analyzed JsonNode
+ * @param rootPath current configuration path
+ * @param selectReload defines whether the current selection should be reloaded
+ * @param onSuccess callback function to be recursively called on successful data addition
+ * @param onError callback function to be recursively called on exception
+* */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateConfigElements(node: JsonNode, rootPath: String, selectReload: Boolean, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+fun CreateConfigElements(node: JsonNode,
+                         rootPath: String,
+                         selectReload: Boolean,
+                         onSuccess: () -> Unit,
+                         onError: (Exception) -> Unit)
+{
     var expanded by remember { mutableStateOf(false) }
     var selectedOption by remember { mutableStateOf("") }
     var lastSelectedOption by remember { mutableStateOf("") }

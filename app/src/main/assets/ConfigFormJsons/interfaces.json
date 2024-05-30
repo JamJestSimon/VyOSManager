@@ -17,8 +17,8 @@
     ]
   },
   "loopback" : {
-    "lo" : [
-      "address"
-    ]
+    "lo" : {
+      "address" : {}
+    }
   }
 }

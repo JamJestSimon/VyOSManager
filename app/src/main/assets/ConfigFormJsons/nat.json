@@ -1,0 +1,48 @@
+{
+  "destination" : {
+    "rule" : {
+      "<1-999999>" : {
+        "description" : {},
+        "destination" : [
+          "address",
+          "port"
+        ],
+        "source" : [
+          "address",
+          "port"
+        ],
+        "translation" : [
+          "address",
+          "port"
+        ],
+        "inbound-interface": [
+          "group",
+          "name"
+        ]
+      }
+    }
+  },
+  "source" : {
+    "rule" : {
+      "<1-999999>" : {
+        "description" : {},
+        "destination" : [
+          "address",
+          "port"
+        ],
+        "source" : [
+          "address",
+          "port"
+        ],
+        "translation" : [
+          "address",
+          "port"
+        ],
+        "outbound-interface": [
+          "group",
+          "name"
+        ]
+      }
+    }
+  }
+}

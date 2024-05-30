@@ -53,8 +53,32 @@ fun DisplayConfig(results : VyOSResults, rootPath: String, onRequest: () -> Unit
 fun createListElements(root: JsonNode, rootPath: String, onRequest: () -> Unit, onSuccess: () -> Unit, onError: (Exception) -> Unit): List<@Composable () -> Unit> {
     val composables = mutableListOf<@Composable () -> Unit>()
 
+    /**
+     * @param node current JsonNode
+     * @param parentNode parent node to current node,
+     * used in getting the name of parent for arrays
+     * @param indentation current content indentation
+     * @param indentationChange the change in indentation
+     * for recursive calls
+     * @param currentPath current configuration path
+     * @param onRequest callback function called recursively
+     * when a request is sent
+     * @param onSuccess callback function called recursively
+     * on successful data edition or deletion
+     * @param onError callback function called recursively
+     * on exception
+     * */
     @Composable
-    fun createListItems(node: JsonNode, parentNode: JsonNode, indentation : Int, indentationChange : Int, currentPath: String, onRequest: () -> Unit, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+    fun createListItems(
+        node: JsonNode,
+        parentNode: JsonNode,
+        indentation : Int,
+        indentationChange : Int,
+        currentPath: String,
+        onRequest: () -> Unit,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit)
+    {
         if (node.isObject) {
             val fieldNames = node.fieldNames()
             while (fieldNames.hasNext()) {
@@ -117,15 +141,42 @@ fun createListElements(root: JsonNode, rootPath: String, onRequest: () -> Unit, 
     return composables
 }
 
+
+/**
+ * @param node JsonNode used in deciding
+ * whether the node is a leaf
+ * @param fieldName the name of represented field
+ * @param value value of the represented field
+ * @param indentation value of indentation
+ * to be used while displaying data
+ * @param currentPath current configuration path
+ * used in sending edit and delete requests
+ * @param onRequest callback function called
+ * while sending requests to server
+ * @param onSuccess callback function called
+ * on successful edition or deletion of data
+ * @param onError callback function called on exception
+ */
 @Composable
-fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentation: Int, currentPath: String, onRequest: () -> Unit, onSuccess: () -> Unit, onError: (Exception) -> Unit){
+fun ListItemTemplate(
+    node: JsonNode,
+    fieldName: String,
+    value: String,
+    indentation: Int,
+    currentPath: String,
+    onRequest: () -> Unit,
+    onSuccess: () -> Unit,
+    onError: (Exception) -> Unit)
+{
     var isEditable = false
     var fieldValue = value
     var isInEditMode by remember { mutableStateOf(false) }
     var editModeValue by remember { mutableStateOf(fieldValue) }
     var path = currentPath
     if(!node.isArray && !node.get(fieldName).isObject && !node.get(fieldName).isArray){ path = "$currentPath\"$fieldName\", " }
-    if((node.isObject && !node.get(fieldName).isObject && !node.get(fieldName).isArray) || node.isArray || fieldName.matches(Regex("(^([0-9]{1,3}\\.){3}([0-9]{1,3})\$)|(^[0-9]{1,6}\$)"))) {
+    if((node.isObject && !node.get(fieldName).isObject && !node.get(fieldName).isArray)
+        || node.isArray
+        || fieldName.matches(Regex("(^([0-9]{1,3}\\.){3}([0-9]{1,3})\$)|(^[0-9]{1,6}\$)"))) {
         isEditable = true
         if(!((node.isObject && !node.get(fieldName).isObject && !node.get(fieldName).isArray) || node.isArray)){
             editModeValue = fieldName
@@ -246,7 +297,31 @@ fun ListItemTemplate(node: JsonNode, fieldName: String, value: String, indentati
     )
 }
 
-fun editNodeKey(node: JsonNode, rootPath: String, oldKey: String, newKey: String, onRequest: () -> Unit, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
+/**
+ * @param node root node for searching
+ * for all configuration paths
+ * @param rootPath configuration path
+ * leading to given node
+ * @param oldKey previous node key,
+ * to be deleted after transferring leaves to a new branch
+ * @param newKey new node key,
+ * used for configuration paths of transferred leaves
+ * @param onRequest callback function called
+ * on sending requests to server
+ * @param onSuccess callback function called
+ * on successful data edition
+ * @param onError callback function called
+ * on exception
+ */
+fun editNodeKey(
+    node: JsonNode,
+    rootPath: String,
+    oldKey: String,
+    newKey: String,
+    onRequest: () -> Unit,
+    onSuccess: () -> Unit,
+    onError: (Exception) -> Unit)
+{
     val pathsToEdit = mutableListOf<String>()
 
     fun addNewNode(node: JsonNode, rootPath: String) {
