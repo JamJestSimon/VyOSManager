@@ -150,7 +150,7 @@ fun DashboardDisplay(onRequest : () -> Unit, onSuccess: () -> Unit, onError: (Ex
                             value = content[0],
                             onValueChange = {},
                             trailingIcon = {
-                                if (content[2].contains('d')) {
+                                if (content[2].contains('d', true)) {
                                     Icon(
                                         imageVector = Icons.Rounded.Close,
                                         contentDescription = "Down",

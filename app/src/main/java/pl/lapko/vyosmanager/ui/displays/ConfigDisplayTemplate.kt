@@ -176,7 +176,8 @@ fun ListItemTemplate(
     if(!node.isArray && !node.get(fieldName).isObject && !node.get(fieldName).isArray){ path = "$currentPath\"$fieldName\", " }
     if((node.isObject && !node.get(fieldName).isObject && !node.get(fieldName).isArray)
         || node.isArray
-        || fieldName.matches(Regex("(^([0-9]{1,3}\\.){3}([0-9]{1,3})\$)|(^[0-9]{1,6}\$)"))) {
+        || fieldName.matches(Regex("(^([0-9]{1,3}\\.){3}([0-9]{1,3})\$)|(^[0-9]{1,6}\$)"))
+        || node.get(fieldName).isEmpty) {
         isEditable = true
         if(!((node.isObject && !node.get(fieldName).isObject && !node.get(fieldName).isArray) || node.isArray)){
             editModeValue = fieldName
