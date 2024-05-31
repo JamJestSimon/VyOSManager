@@ -66,6 +66,7 @@ fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean, categor
     var showErrorMessage by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var unsavedChanges by remember { mutableStateOf(anyUnsavedChanges) }
+    var displayView by remember { mutableStateOf(true) }
     LaunchedEffect(Unit) {
         scope.launch {
             snackbarHostState.showSnackbar("Fetching data")
@@ -84,216 +85,221 @@ fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean, categor
             )
         }
     }
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Text("Configuration sections", modifier = Modifier.padding(16.dp))
-                HorizontalDivider()
-                for (navigationItem in navigationItems) {
-                    NavigationDrawerItem(
-                        label = { Text(navigationItem) },
-                        selected = navigationItem == selectedNavigationItem,
-                        onClick = {
-                            scope.launch {
-                                drawerState.apply {
-                                    if(isOpen) close()
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet {
+                    Text("Configuration sections", modifier = Modifier.padding(16.dp))
+                    HorizontalDivider()
+                    for (navigationItem in navigationItems) {
+                        NavigationDrawerItem(
+                            label = { Text(navigationItem) },
+                            selected = navigationItem == selectedNavigationItem,
+                            onClick = {
+                                scope.launch {
+                                    drawerState.apply {
+                                        if (isOpen) close()
+                                    }
+                                }
+                                showConfig = false
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Fetching data")
+                                }
+                                selectedNavigationItem = navigationItem
+                                configPath = navigationItem.lowercase()
+                                if (selectedNavigationItem != "Dashboard") {
+                                    VyOSConnection.getVyOSData(
+                                        "\"$configPath\"",
+                                        onSuccess = { vyOSResults ->
+                                            currentVyOSResults = vyOSResults
+                                            showConfig = true
+                                        },
+                                        onError = {
+                                            showErrorMessage = true
+                                            errorMessage = it.message.toString()
+                                        }
+                                    )
                                 }
                             }
-                            showConfig = false
-                            scope.launch {
-                                snackbarHostState.showSnackbar("Fetching data")
-                            }
-                            selectedNavigationItem = navigationItem
-                            configPath = navigationItem.lowercase()
-                            if(selectedNavigationItem != "Dashboard") {
-                                VyOSConnection.getVyOSData(
-                                    "\"$configPath\"",
-                                    onSuccess = { vyOSResults ->
-                                        currentVyOSResults = vyOSResults
-                                        showConfig = true
-                                    },
-                                    onError = {
-                                        showErrorMessage = true
-                                        errorMessage = it.message.toString()
+                        )
+                    }
+                }
+            }
+        ) {
+            Scaffold(
+                snackbarHost = {
+                    SnackbarHost(hostState = snackbarHostState)
+                },
+                topBar = {
+                    CenterAlignedTopAppBar(
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        title = {
+                            Text("Connected to " + VyOSConnection.getVyOSAddress())
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        drawerState.apply {
+                                            if (isClosed) open() else close()
+                                        }
                                     }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Menu,
+                                    contentDescription = "Navigation menu"
+                                )
+                            }
+                        },
+                        scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),
+                        actions = {
+                            IconButton(onClick = {
+                                navController.navigate("LoginScreen")
+                            }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = "Back to login screen"
                                 )
                             }
                         }
                     )
-                }
-            }
-        }
-    ) {
-        Scaffold(
-            snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState)
-            },
-            topBar = {
-                CenterAlignedTopAppBar(
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    title = {
-                        Text("Connected to " + VyOSConnection.getVyOSAddress())
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    drawerState.apply {
-                                        if(isClosed) open() else close()
-                                    }
-                                }
-                            }
+                },
+                floatingActionButton = {
+                    if (selectedNavigationItem != "Dashboard") {
+                        FloatingActionButton(
+                            onClick = { navController.navigate("ConfigScreen/$configPath") }
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.Menu,
-                                contentDescription = "Navigation menu"
-                            )
-                        }
-                    },
-                    scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(),
-                    actions = {
-                        IconButton(onClick = {
-                            navController.navigate("LoginScreen")
-                        }){
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = "Back to login screen"
-                            )
+                            Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
                         }
                     }
-                )
-            },
-            floatingActionButton = {
-                if(selectedNavigationItem != "Dashboard") {
-                    FloatingActionButton(
-                        onClick = { navController.navigate("ConfigScreen/$configPath") }
+                }, content = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(it)
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
-                    }
-                }
-            }, content = {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(it)
-                ) {
-                    if (unsavedChanges) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Button(onClick = {
-                            VyOSConnection.saveVyOSData(
-                                onSuccess = {
-                                    unsavedChanges = false
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Data has been saved")
+                        if (unsavedChanges) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Button(onClick = {
+                                VyOSConnection.saveVyOSData(
+                                    onSuccess = {
+                                        unsavedChanges = false
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Data has been saved")
+                                        }
+                                    }, onError = {
+                                        showErrorMessage = true
+                                        errorMessage = it.message.toString()
                                     }
-                                }, onError = {
-                                    showErrorMessage = true
-                                    errorMessage = it.message.toString()
-                                }
-                            )
-                        }) {
-                            Text("Save changes")
-                        }
-                    }
-                    if(selectedNavigationItem == "Dashboard"){
-                        DashboardDisplay(
-                            onRequest = {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Request sent to server")
-                                }
-                            },
-                            onSuccess = {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Data has been changed")
-                                    unsavedChanges = true
-                                }
-                            }, onError = {
-                                showErrorMessage = true
-                                errorMessage = it.message.toString()
+                                )
+                            }) {
+                                Text("Save changes")
                             }
-                        )
-                    } else {
-                        if(selectedNavigationItem == "Protocols"){
-                            RouteTableDisplay(
-                                onRequest = {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("Fetching data")
-                                    }
-                                }, onError = {
-                                    showErrorMessage = true
-                                    errorMessage = it.message.toString()
-                                }
-                            )
                         }
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "$selectedNavigationItem configuration".uppercase(),
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                        if (showConfig) {
-                            DisplayConfig(currentVyOSResults!!, "\"$configPath\", ",
+                        if (selectedNavigationItem == "Dashboard") {
+                            DashboardDisplay(
                                 onRequest = {
                                     scope.launch {
                                         snackbarHostState.showSnackbar("Request sent to server")
                                     }
                                 },
                                 onSuccess = {
-                                    unsavedChanges = true
                                     scope.launch {
-                                        val result = snackbarHostState.showSnackbar(
-                                            "Data has been changed",
-                                            "Refresh"
-                                        )
-                                        when (result) {
-                                            SnackbarResult.ActionPerformed -> {
-                                                scope.launch {
-                                                    snackbarHostState.showSnackbar("Fetching data")
-                                                }
-                                                showConfig = false
-                                                VyOSConnection.getVyOSData(
-                                                    "\"$configPath\"",
-                                                    onSuccess = { vyOSResults ->
-                                                        currentVyOSResults = vyOSResults
-                                                        showConfig = true
-                                                    },
-                                                    onError = {
-                                                        showErrorMessage = true
-                                                        errorMessage = it.message.toString()
-                                                    }
-                                                )
-                                            }
-                                            SnackbarResult.Dismissed -> {}
-                                        }
+                                        snackbarHostState.showSnackbar("Data has been changed")
+                                        unsavedChanges = true
                                     }
                                 }, onError = {
                                     showErrorMessage = true
                                     errorMessage = it.message.toString()
                                 }
                             )
-                        }
-                    }
-                }
-                if(showErrorMessage){
-                    AlertDialog(
-                        onDismissRequest = { showErrorMessage = false },
-                        title = { Text("Error while executing operation") },
-                        text = { Text(errorMessage) },
-                        confirmButton = {
-                            Button(onClick = { showErrorMessage = false }) {
-                                Text("OK")
+                        } else {
+                            if (selectedNavigationItem == "Protocols") {
+                                if(displayView) {
+                                    RouteTableDisplay(
+                                        onRequest = {
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Fetching data")
+                                            }
+                                        }, onError = {
+                                            showErrorMessage = true
+                                            errorMessage = it.message.toString()
+                                        }
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                text = "$selectedNavigationItem configuration".uppercase(),
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            if (showConfig) {
+                                DisplayConfig(currentVyOSResults!!, "\"$configPath\", ",
+                                    onRequest = {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Request sent to server")
+                                        }
+                                    },
+                                    onSuccess = {
+                                        unsavedChanges = true
+                                        scope.launch {
+                                            val result = snackbarHostState.showSnackbar(
+                                                "Data has been changed",
+                                                "Refresh"
+                                            )
+                                            when (result) {
+                                                SnackbarResult.ActionPerformed -> {
+                                                    scope.launch {
+                                                        snackbarHostState.showSnackbar("Fetching data")
+                                                    }
+                                                    showConfig = false
+                                                    displayView = false
+                                                    VyOSConnection.getVyOSData(
+                                                        "\"$configPath\"",
+                                                        onSuccess = { vyOSResults ->
+                                                            currentVyOSResults = vyOSResults
+                                                            showConfig = true
+                                                            displayView = true
+                                                        },
+                                                        onError = {
+                                                            showErrorMessage = true
+                                                            errorMessage = it.message.toString()
+                                                        }
+                                                    )
+                                                }
+
+                                                SnackbarResult.Dismissed -> {}
+                                            }
+                                        }
+                                    }, onError = {
+                                        showErrorMessage = true
+                                        errorMessage = it.message.toString()
+                                    }
+                                )
                             }
                         }
-                    )
+                    }
+                    if (showErrorMessage) {
+                        AlertDialog(
+                            onDismissRequest = { showErrorMessage = false },
+                            title = { Text("Error while executing operation") },
+                            text = { Text(errorMessage) },
+                            confirmButton = {
+                                Button(onClick = { showErrorMessage = false }) {
+                                    Text("OK")
+                                }
+                            }
+                        )
+                    }
                 }
-            }
-        )
-    }
+            )
+        }
 }
 
 @Preview(showBackground = true)
