@@ -18,7 +18,8 @@
         "inbound-interface": [
           "group",
           "name"
-        ]
+        ],
+        "protocol": {}
       }
     }
   },
@@ -41,7 +42,8 @@
         "outbound-interface": [
           "group",
           "name"
-        ]
+        ],
+        "protocol": {}
       }
     }
   }

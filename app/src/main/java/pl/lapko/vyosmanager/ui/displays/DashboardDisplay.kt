@@ -111,7 +111,7 @@ fun DashboardDisplay(onRequest : () -> Unit, onSuccess: () -> Unit, onError: (Ex
                                 modifier = Modifier.clickable {
                                     hostnameEditMode = false
                                     onRequest()
-                                    VyOSConnection.setVyOSData("\"system\", \"host-name\", \"$hostname\"",
+                                    VyOSConnection.setVyOSData(listOf("\"system\", \"host-name\", \"$hostname\""),
                                         onSuccess = {
                                             onSuccess()
                                         }, onError = {

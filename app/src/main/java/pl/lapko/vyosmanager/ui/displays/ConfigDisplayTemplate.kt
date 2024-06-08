@@ -210,7 +210,7 @@ fun ListItemTemplate(
                             //Confirm button
                             IconButton(
                                 onClick = {
-                                    editNodeKey(node, path, fieldValue, editModeValue,
+                                    editNodeKey(node.get(fieldName), path, fieldValue, editModeValue,
                                         onRequest = {
                                             onRequest()
                                         }, onSuccess = {
@@ -361,7 +361,7 @@ fun editNodeKey(
         pathsToEdit.add("$rootPath\"$newKey\"")
     }
     onRequest()
-    VyOSConnection.setMultipleVyOSData(pathsToEdit,
+    VyOSConnection.setVyOSData(pathsToEdit,
         onSuccess = {
             VyOSConnection.deleteVyOSData("$rootPath\"$oldKey\"",
                 onSuccess = {

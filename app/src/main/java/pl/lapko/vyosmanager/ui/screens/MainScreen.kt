@@ -182,6 +182,7 @@ fun MainScreen(navController: NavController, anyUnsavedChanges: Boolean, categor
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(it)
+                            .padding(bottom = 72.dp)
                     ) {
                         if (unsavedChanges) {
                             Spacer(modifier = Modifier.height(10.dp))

@@ -17,7 +17,6 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import pl.lapko.vyosmanager.data.VyOSResults
 import kotlin.coroutines.resumeWithException
 
@@ -46,7 +45,7 @@ object VyOSConnection {
     ) {
         CoroutineScope(Dispatchers.Main).launch {
             try{
-                val result = vyOSRequest("retrieve","showConfig","").await()
+                val result = vyOSRequest("retrieve","showConfig",listOf("")).await()
                 if(result == null){
                     onError(Exception("Unknown internal VyOS error"))
                 } else if(!result.success){
@@ -68,7 +67,7 @@ object VyOSConnection {
     ){
         CoroutineScope(Dispatchers.IO).launch {
             try{
-                val result = vyOSRequest("retrieve","showConfig",path).await()
+                val result = vyOSRequest("retrieve","showConfig", listOf(path)).await()
                 if(result == null){
                     onError(Exception("Unknown internal VyOS error"))
                 } else if(!result.success){
@@ -84,13 +83,13 @@ object VyOSConnection {
     }
 
     fun setVyOSData(
-        path: String,
+        paths: List<String>,
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ){
         CoroutineScope(Dispatchers.IO).launch {
             try{
-                val result = vyOSRequest("configure","set",path).await()
+                val result = vyOSRequest("configure","set", paths).await()
                 if(result == null){
                     onError(Exception("Unknown internal VyOS error"))
                 } else if(!result.success){
@@ -105,32 +104,6 @@ object VyOSConnection {
         }
     }
 
-    fun setMultipleVyOSData(
-        paths: List<String>,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ){
-        CoroutineScope(Dispatchers.IO).launch {
-            try{
-                val deferredTasks = paths.map { path ->
-                    vyOSRequest("configure", "set", path)
-                }
-                val results = deferredTasks.awaitAll()
-                results.forEach {
-                    if(it == null){
-                        onError(Exception("Unknown internal VyOS error"))
-                    } else if(!it.success){
-                        onError(Exception("Internal VyOS error: ${it.error}"))
-                    }
-                }
-                onSuccess()
-            } catch (e: Exception){
-                Log.println(Log.ERROR, "VOLLEY_DEBUG", e.toString())
-                onError(e)
-            }
-        }
-    }
-
     fun deleteVyOSData(
         path: String,
         onSuccess: () -> Unit,
@@ -138,7 +111,7 @@ object VyOSConnection {
     ){
         CoroutineScope(Dispatchers.IO).launch {
             try{
-                val result = vyOSRequest("configure","delete",path).await()
+                val result = vyOSRequest("configure","delete", listOf(path)).await()
                 if(result == null){
                     onError(Exception("Unknown internal VyOS error"))
                 } else if(!result.success){
@@ -160,7 +133,7 @@ object VyOSConnection {
     ){
         CoroutineScope(Dispatchers.IO).launch {
             try{
-                val result = vyOSRequest("show","show",path).await()
+                val result = vyOSRequest("show","show", listOf(path)).await()
                 if(result == null){
                     onError(Exception("Unknown internal VyOS error"))
                 } else if(!result.success){
@@ -181,7 +154,7 @@ object VyOSConnection {
     ){
         CoroutineScope(Dispatchers.IO).launch {
             try{
-                val result = vyOSRequest("config-file", "save", "").await()
+                val result = vyOSRequest("config-file", "save", listOf("")).await()
                 if(result == null){
                     onError(Exception("Unknown internal VyOS error"))
                 } else if(!result.success){
@@ -210,7 +183,7 @@ object VyOSConnection {
     *   save
     *
     * */
-    private suspend fun vyOSRequest(endpoint: String, op: String, path: String): Deferred<VyOSResults?> {
+    private suspend fun vyOSRequest(endpoint: String, op: String, path: List<String>): Deferred<VyOSResults?> {
         return CoroutineScope(Dispatchers.IO).async {
             Log.println(Log.INFO, "INFO", "Starting VyOS Request")
             val url = "https://$VyOSAddress/$endpoint"
@@ -239,8 +212,23 @@ object VyOSConnection {
                         if(op == "save") {
                             params["data"] = "{\"op\": \"$op\"}"
                         } else {
-                            params["data"] = "{\"op\": \"$op\", \"path\": [$path]}"
-                            Log.println(Log.INFO, "VOLLEY_DEBUG", "{\"op\": \"$op\", \"path\": [$path]}")
+                            if (path.size < 2) {
+                                params["data"] = "{\"op\": \"$op\", \"path\": [${path.first()}]}"
+                            } else {
+                                params["data"] = "["
+                                path.forEach {
+                                    params["data"] += "{\"op\": \"$op\", \"path\": [$it]}, "
+                                }
+                                params["data"] = params["data"]!!.removeSuffix(", ")
+                                params["data"] += "]"
+                                path.forEach {
+                                    Log.println(
+                                        Log.INFO,
+                                        "VOLLEY_DEBUG",
+                                        "{\"op\": \"$op\", \"path\": [$it]}"
+                                    )
+                                }
+                            }
                         }
                         params["key"] = VyOSPassword
                         return params
